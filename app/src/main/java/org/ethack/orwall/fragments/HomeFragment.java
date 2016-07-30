@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.support.v4.app.Fragment;
@@ -267,13 +268,14 @@ public class HomeFragment extends Fragment {
         Intent intent = new Intent(this.getActivity(), TabbedMain.class);
         final PendingIntent pintent = PendingIntent.getActivity(this.getActivity(), 0, intent, 0);
 
+        int ico = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)?R.drawable.shield:R.drawable.ic_launcher;
         final NotificationCompat.Builder notification = new NotificationCompat.Builder(getActivity())
                 .setAutoCancel(false)
                 .setOngoing(true)
                 .setContentIntent(pintent)
                 .setContentTitle(getString(R.string.notification_deactivated_title))
                 .setContentText(getString(R.string.notification_deactivated_text))
-                .setSmallIcon(R.drawable.v2);
+                .setSmallIcon(ico);
 
         final NotificationManager notificationManager = (NotificationManager)getActivity().getSystemService(Context.NOTIFICATION_SERVICE);
 
