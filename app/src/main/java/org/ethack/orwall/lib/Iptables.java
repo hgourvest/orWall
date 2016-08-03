@@ -1,9 +1,7 @@
 package org.ethack.orwall.lib;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 
 import android.util.Log;
 
@@ -67,7 +65,7 @@ public class Iptables {
      * @param command
      * @return true if success
      */
-    private boolean runCommand(final String command) {
+    public boolean runCommand(final String command) {
         if (shell == null){
             try {
                 shell = Shell.startRootShell();
@@ -190,9 +188,9 @@ public class Iptables {
                 "-P INPUT ACCEPT",
                 "-P OUTPUT ACCEPT",
                 "-P FORWARD ACCEPT",
-                "-D INPUT -j REJECT",
-                "-D OUTPUT -j REJECT",
-                "-D FORWARD -j REJECT"
+                "-D INPUT -j DROP",
+                "-D OUTPUT -j DROP",
+                "-D FORWARD -j DROP"
         };
         for (String rule : rules) {
             if (!genericRuleV6(rule)) {
@@ -306,16 +304,16 @@ public class Iptables {
 
     public void initIPv6(){
         if (!ip6tablesExists()) return;
-        if (genericRuleV6("-C INPUT -j REJECT")) return;
+        if (genericRuleV6("-C INPUT -j DROP")) return;
 
         String[] rules = {
                 // flush all OUTPUT rules
                 "-P INPUT DROP",
                 "-P OUTPUT DROP",
                 "-P FORWARD DROP",
-                "-I INPUT -j REJECT",
-                "-I OUTPUT -j REJECT",
-                "-I FORWARD -j REJECT"
+                "-I INPUT -j DROP",
+                "-I OUTPUT -j DROP",
+                "-I FORWARD -j DROP"
         };
         for (String rule : rules) {
             if (!genericRuleV6(rule)) {

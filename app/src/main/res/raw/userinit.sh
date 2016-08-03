@@ -59,9 +59,9 @@ run "$IPTABLES -I INPUT -j ow_INPUT_LOCK"
 run "$IP6TABLES -P INPUT DROP"
 run "$IP6TABLES -P OUTPUT DROP"
 run "$IP6TABLES -P FORWARD DROP"
-run "$IP6TABLES -I INPUT -j REJECT"
-run "$IP6TABLES -I OUTPUT -j REJECT"
-run "$IP6TABLES -I FORWARD -j REJECT"
+run "$IP6TABLES -I INPUT -j DROP"
+run "$IP6TABLES -I OUTPUT -j DROP"
+run "$IP6TABLES -I FORWARD -j DROP"
 
 # output iptables status: filter
 #run "$IPTABLES -nL -t filter"
