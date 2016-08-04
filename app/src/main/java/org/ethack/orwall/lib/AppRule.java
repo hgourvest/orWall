@@ -17,19 +17,21 @@ public class AppRule {
     private String onionType;
     private Boolean localHost;
     private Boolean localNetwork;
+    private String dports;
 
     // Variables dedicated for ListView
     // We need them for persistence across scroll
     private String label;
     private String appName;
 
-    public AppRule(Boolean stored, String pkgName, Long appUID, String onionType, Boolean localHost, Boolean localNetwork) {
+    public AppRule(Boolean stored, String pkgName, Long appUID, String onionType, Boolean localHost, Boolean localNetwork, String dPorts) {
         this.stored = stored;
         this.pkgName = pkgName;
         this.appUID = appUID;
         this.onionType = onionType;
         this.localHost = localHost;
         this.localNetwork = localNetwork;
+        this.dports = dPorts;
         // set to a null value - used in AppListAdapter
         this.label = null;
         this.appName = null;
@@ -43,6 +45,7 @@ public class AppRule {
         this.onionType = Constants.DB_ONION_TYPE_NONE;
         this.localHost = false;
         this.localNetwork = false;
+        this.dports = null;
         // set to a null value - used in AppListAdapter
         this.label = null;
         this.appName = null;
@@ -80,9 +83,13 @@ public class AppRule {
                 break;
             case Constants.DB_ONION_TYPE_BYPASS:
                 flags.add("Bypass");
+                if (dports != null)
+                    flags.add(dports);
                 break;
             case Constants.DB_ONION_TYPE_TOR:
                 flags.add("Tor");
+                if (dports != null)
+                    flags.add(dports);
                 break;
         }
         if (this.localHost) {
@@ -146,6 +153,13 @@ public class AppRule {
         this.appName = appName;
     }
 
+    public String getDPorts(){ return this.dports; }
+
+    public void setDPorts(String value){
+        // normalize string list
+        this.dports = Util.StringJoin(' ', Util.StringSplit(value));
+    }
+
     private Intent newBackground(Context context, Intent intent){
         Intent bg = (intent == null? new Intent(context, BackgroundProcess.class): intent);
         bg.putExtra(Constants.PARAM_APPUID, getAppUID());
@@ -153,6 +167,7 @@ public class AppRule {
         bg.putExtra(Constants.PARAM_ONIONTYPE, getOnionType());
         bg.putExtra(Constants.PARAM_LOCALHOST, getLocalHost());
         bg.putExtra(Constants.PARAM_LOCALNETWORK, getLocalNetwork());
+        bg.putExtra(Constants.PARAM_DPORTS, getDPorts());
         return bg;
     }
 

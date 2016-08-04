@@ -10,6 +10,7 @@ import org.sufficientlysecure.rootcommands.command.SimpleCommand;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.TimeoutException;
 
 public class Util {
@@ -76,5 +77,76 @@ public class Util {
                 }
             }
         }
+    }
+
+    public static String StringJoin(char sep, ArrayList<String> arr){
+        if (arr == null) return null;
+        switch (arr.size()){
+            case 0: return null;
+            case 1: return arr.get(0);
+            default:
+                StringBuilder ret = new StringBuilder();
+                ret.append(arr.get(0));
+                for (int i = 1; i < arr.size(); i++) {
+                    ret.append(sep).append(arr.get(i));
+                }
+                return ret.toString();
+        }
+    }
+
+    public static ArrayList<String> StringSplit(String str) {
+        if (str == null) return null;
+        str = str.trim();
+        if (str.isEmpty()) return null;
+        ArrayList<String> ret = new ArrayList<>();
+        for(String s: str.split("\\s+")) ret.add(s);
+        return ret;
+    }
+
+    public static ArrayList<String> StringFilterTCP(String str) {
+        ArrayList<String> items = StringSplit(str);
+        if (items != null){
+            ArrayList<String> ret = new ArrayList<>();
+            String port;
+            String[] list;
+            for (int i = 0; i < items.size(); i++) {
+                port = items.get(i);
+                list = port.split(":");
+                switch (list.length) {
+                    case 1:
+                        ret.add(port);
+                        break;
+                    case 2:
+                        if (list[0].equals("tcp")) {
+                            ret.add(list[1]);
+                        }
+                        break;
+                    default:
+                        // error
+                }
+            }
+            if (ret.size() > 0)
+                return ret;
+        }
+        return null;
+    }
+
+    public static ArrayList<String> StringFilterUDP(String str) {
+        ArrayList<String> items = StringSplit(str);
+        if (items != null){
+            ArrayList<String> ret = new ArrayList<>();
+            String port;
+            String[] list;
+            for (int i = 0; i < items.size(); i++) {
+                port = items.get(i);
+                list = port.split(":");
+                if (list.length == 2 && list[0].equals("udp")) {
+                    ret.add(list[1]);
+                }
+            }
+            if (ret.size() > 0)
+                return ret;
+        }
+        return null;
     }
 }

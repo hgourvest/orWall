@@ -11,6 +11,7 @@ import org.sufficientlysecure.rootcommands.command.SimpleCommand;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringBufferInputStream;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Set;
@@ -24,6 +25,7 @@ public class Iptables {
 
     private Context context;
     private Boolean _supportComment;
+    private Boolean _supportMultiport;
     private Boolean _supportWait;
     private Integer _orbotUID;
     private Shell shell = null;
@@ -53,6 +55,12 @@ public class Iptables {
         if (_orbotUID == null)
             _orbotUID = Util.getOrbotUID(context);
         return _orbotUID;
+    }
+
+    public boolean getSupportMultiport(){
+        if (_supportMultiport == null)
+            _supportMultiport = runCommand("cat /proc/net/ip_tables_matches | grep -q multiport");
+        return _supportMultiport;
     }
 
     public boolean isOrbotInstalled(){
@@ -667,34 +675,54 @@ public class Iptables {
      * @param action
      * @param appName
      */
-    public void natApp(Context context, final long appUID, final char action, final String appName) {
+    public void natApp(Context context, final long appUID, final char action, final String appName, final String dPorts) {
         if (!isOrbotInstalled()) return;
         long trans_port = Long.valueOf(Preferences.getTransPort(context));
         long dns_port = Long.valueOf(Preferences.getDNSPort(context));
-        String[] RULES = {
-                String.format(Locale.US,
-                        "-t nat -%c ow_OUTPUT -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m owner --uid-owner %d -j REDIRECT --to-ports %d%s",
-                        action, appUID, trans_port,
-                        (getSupportComment() ? String.format(" -m comment --comment \"Force %s through TransPort\"", appName) : "")
-                ),
-                String.format(Locale.US,
-                        "-t nat -%c ow_OUTPUT -p udp --dport 53 -m owner --uid-owner %d -j REDIRECT --to-ports %d%s",
-                        action, appUID, dns_port,
-                        (getSupportComment() ? String.format(" -m comment --comment \"Force %s through DNSProxy\"", appName) : "")
-                ),
-                String.format(Locale.US,
-                        "-%c ow_OUTPUT -d 127.0.0.1 -m conntrack --ctstate NEW,ESTABLISHED -m owner --uid-owner %d -m tcp -p tcp --dport %d -j ACCEPT%s",
-                        action, appUID, trans_port,
-                        (getSupportComment() ? String.format(" -m comment --comment \"Allow %s through TransPort\"", appName) : "")
-                ),
-                String.format(Locale.US,
-                        "-%c ow_OUTPUT -d 127.0.0.1 -m conntrack --ctstate NEW,ESTABLISHED -m owner --uid-owner %d -p udp --dport %d -j ACCEPT%s",
-                        action, appUID, dns_port,
-                        (getSupportComment() ? String.format(" -m comment --comment \"Allow %s through DNSProxy\"", appName) : "")
-                ),
-        };
+        ArrayList<String> rules = new ArrayList<>();
+        ArrayList<String> ports = Util.StringFilterTCP(dPorts);
 
-        for (String rule : RULES) {
+        if (ports != null && ports.size() > 0){
+            if (ports.size() == 1 || !getSupportMultiport()) {
+                for(String port: ports){
+                    rules.add(String.format(Locale.US,
+                            "-t nat -%c ow_OUTPUT -p tcp --dport %s -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m owner --uid-owner %d -j REDIRECT --to-ports %d%s",
+                            action, port, appUID, trans_port,
+                            (getSupportComment() ? String.format(" -m comment --comment \"Force %s through TransPort\"", appName) : "")
+                    ));
+                }
+            } else {
+                rules.add(String.format(Locale.US,
+                        "-t nat -%c ow_OUTPUT -p tcp -m multiport --dports %s -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m owner --uid-owner %d -j REDIRECT --to-ports %d%s",
+                        action, Util.StringJoin(',', ports), appUID, trans_port,
+                        (getSupportComment() ? String.format(" -m comment --comment \"Force %s through TransPort\"", appName) : "")
+                ));
+            }
+        } else {
+            rules.add(String.format(Locale.US,
+                    "-t nat -%c ow_OUTPUT -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m owner --uid-owner %d -j REDIRECT --to-ports %d%s",
+                    action, appUID, trans_port,
+                    (getSupportComment() ? String.format(" -m comment --comment \"Force %s through TransPort\"", appName) : "")
+            ));
+        }
+
+        rules.add(String.format(Locale.US,
+                "-t nat -%c ow_OUTPUT -p udp --dport 53 -m owner --uid-owner %d -j REDIRECT --to-ports %d%s",
+                action, appUID, dns_port,
+                (getSupportComment() ? String.format(" -m comment --comment \"Force %s through DNSProxy\"", appName) : "")
+        ));
+        rules.add(String.format(Locale.US,
+                "-%c ow_OUTPUT -d 127.0.0.1 -m conntrack --ctstate NEW,ESTABLISHED -m owner --uid-owner %d -m tcp -p tcp --dport %d -j ACCEPT%s",
+                action, appUID, trans_port,
+                (getSupportComment() ? String.format(" -m comment --comment \"Allow %s through TransPort\"", appName) : "")
+        ));
+        rules.add(String.format(Locale.US,
+                "-%c ow_OUTPUT -d 127.0.0.1 -m conntrack --ctstate NEW,ESTABLISHED -m owner --uid-owner %d -p udp --dport %d -j ACCEPT%s",
+                action, appUID, dns_port,
+                (getSupportComment() ? String.format(" -m comment --comment \"Allow %s through DNSProxy\"", appName) : "")
+        ));
+
+        for (String rule : rules) {
             if (!genericRule(rule)) {
                 Log.e(Iptables.class.getName(), rule);
             }
@@ -730,15 +758,55 @@ public class Iptables {
         return runCommand(String.format((getSupportWait())?"%s -w %s":"%s %s", Constants.IP6TABLES, rule));
     }
 
-    public void bypass(final long appUID, final String appName, final boolean allow) {
-        char action = (allow ? 'A' : 'D');
-        String[] rules = {
-                String.format(Locale.US,
-                        "-%c ow_OUTPUT -m conntrack --ctstate NEW,ESTABLISHED,RELATED -m owner --uid-owner %d -j ACCEPT%s",
-                        action, appUID,
+    private boolean bypassFilter(final long appUID, final String appName, ArrayList<String> ports,
+                                 ArrayList<String> rules, char action, String proto) {
+        if (ports != null && ports.size() > 0){
+            for(String port: ports)
+                if (port.equals("none"))
+                    return true;
+
+            if (ports.size() == 1 || !getSupportMultiport()) {
+                for(String port: ports){
+                    rules.add(String.format(Locale.US,
+                            "-%c ow_OUTPUT -p %s --dport %s -m conntrack --ctstate NEW,ESTABLISHED,RELATED -m owner --uid-owner %d -j ACCEPT%s",
+                            action, proto, port, appUID,
+                            (getSupportComment() ? String.format(" -m comment --comment \"Allow %s to bypass Proxies\"", appName) : "")
+                    ));
+                }
+            } else {
+                rules.add(String.format(Locale.US,
+                        "-%c ow_OUTPUT -p %s -m multiport --dports %s -m conntrack --ctstate NEW,ESTABLISHED,RELATED -m owner --uid-owner %d -j ACCEPT%s",
+                        action, proto, Util.StringJoin(',', ports), appUID,
                         (getSupportComment() ? String.format(" -m comment --comment \"Allow %s to bypass Proxies\"", appName) : "")
-                ),
-        };
+                ));
+            }
+            return true;
+        }
+        return false;
+    }
+
+    public void bypass(final long appUID, final String appName, final boolean allow, final String dPorts) {
+        char action = (allow ? 'A' : 'D');
+        ArrayList<String> rules = new ArrayList<>();
+
+        boolean tcp = bypassFilter(appUID, appName, Util.StringFilterTCP(dPorts), rules, action, "tcp");
+        boolean udp = bypassFilter(appUID, appName, Util.StringFilterUDP(dPorts), rules, action, "udp");
+
+        if (!udp || !tcp) {
+            String proto;
+            if (!udp && tcp)
+                proto = " -p udp ";
+            else if (udp && !tcp)
+                proto = " -p tcp ";
+            else
+                proto = "";
+
+            rules.add(String.format(Locale.US,
+                    "-%c ow_OUTPUT%s -m conntrack --ctstate NEW,ESTABLISHED,RELATED -m owner --uid-owner %d -j ACCEPT%s",
+                    action, proto, appUID,
+                    (getSupportComment() ? String.format(" -m comment --comment \"Allow %s to bypass Proxies\"", appName) : "")
+            ));
+        }
 
         for (String rule : rules) {
             if (!genericRule(rule)) {

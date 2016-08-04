@@ -37,7 +37,7 @@ public class NatRules {
         return (result == 1);
     }
 
-    public boolean addAppToRules(Long appUID, String appName, String onionType, Boolean localHost, Boolean localNetwork) {
+    public boolean addAppToRules(Long appUID, String appName, String onionType, Boolean localHost, Boolean localNetwork, String dPorts) {
 
         ContentValues contentValues = new ContentValues();
         contentValues.put(natDBHelper.COLUMN_APPNAME, appName);
@@ -45,6 +45,7 @@ public class NatRules {
         contentValues.put(natDBHelper.COLUMN_ONIONTYPE, onionType);
         contentValues.put(natDBHelper.COLUMN_LOCALHOST, localHost);
         contentValues.put(natDBHelper.COLUMN_LOCALNETWORK, localNetwork);
+        contentValues.put(natDBHelper.COLUMN_DPORTS, dPorts);
 
         SQLiteDatabase db = this.dbHelper.getWritableDatabase();
         long result = db.insert(natDBHelper.NAT_TABLE_NAME, null, contentValues);
@@ -58,7 +59,8 @@ public class NatRules {
                 appRule.getPkgName(),
                 appRule.getOnionType(),
                 appRule.getLocalHost(),
-                appRule.getLocalNetwork()
+                appRule.getLocalNetwork(),
+                appRule.getDPorts()
         );
     }
 
@@ -71,7 +73,8 @@ public class NatRules {
                 natDBHelper.COLUMN_APPUID,
                 natDBHelper.COLUMN_ONIONTYPE,
                 natDBHelper.COLUMN_LOCALHOST,
-                natDBHelper.COLUMN_LOCALNETWORK
+                natDBHelper.COLUMN_LOCALNETWORK,
+                natDBHelper.COLUMN_DPORTS
         };
         Cursor cursor = db.query(natDBHelper.NAT_TABLE_NAME, selection, null, null, null, null, null);
 
@@ -89,7 +92,8 @@ public class NatRules {
                     cursor.getLong(1),
                     cursor.getString(2),
                     cursor.getLong(3) == 1,
-                    cursor.getLong(4) == 1
+                    cursor.getLong(4) == 1,
+                    cursor.getString(5)
             );
             list.add(appRule);
         } while (cursor.moveToNext());
@@ -120,7 +124,7 @@ public class NatRules {
             // ensure we migrate only existing applications
             try {
                 packageManager.getApplicationInfo(name, PackageManager.GET_META_DATA);
-                addAppToRules(uid, name, Constants.DB_ONION_TYPE_TOR, false, false);
+                addAppToRules(uid, name, Constants.DB_ONION_TYPE_TOR, false, false, null);
             } catch (PackageManager.NameNotFoundException e) {
             }
         }
@@ -133,6 +137,7 @@ public class NatRules {
         contentValues.put(natDBHelper.COLUMN_ONIONTYPE, appRule.getOnionType());
         contentValues.put(natDBHelper.COLUMN_LOCALHOST, appRule.getLocalHost()?1:0);
         contentValues.put(natDBHelper.COLUMN_LOCALNETWORK, appRule.getLocalNetwork()?1:0);
+        contentValues.put(natDBHelper.COLUMN_DPORTS, appRule.getDPorts());
 
         String filter = natDBHelper.COLUMN_APPUID + "=?";
         String[] filterArgs = {String.valueOf(appRule.getAppUID())};
@@ -161,7 +166,8 @@ public class NatRules {
                 natDBHelper.COLUMN_APPUID,
                 natDBHelper.COLUMN_ONIONTYPE,
                 natDBHelper.COLUMN_LOCALHOST,
-                natDBHelper.COLUMN_LOCALNETWORK
+                natDBHelper.COLUMN_LOCALNETWORK,
+                natDBHelper.COLUMN_DPORTS
         };
 
         Cursor cursor = db.query(
@@ -182,7 +188,8 @@ public class NatRules {
                     cursor.getLong(1),
                     cursor.getString(2),
                     cursor.getLong(3) == 1,
-                    cursor.getLong(4) == 1
+                    cursor.getLong(4) == 1,
+                    cursor.getString(5)
             );
         } else {
             appRule = new AppRule();

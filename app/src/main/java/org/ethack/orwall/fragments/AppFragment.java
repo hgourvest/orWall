@@ -114,7 +114,7 @@ public class AppFragment extends Fragment {
         for (PackageInfo pkgInfo : pkgInstalled) {
             if (needInternet(pkgInfo) && !isReservedApp(pkgInfo)) {
                 if (index.indexOfKey((long) pkgInfo.applicationInfo.uid) < 0) {
-                    AppRule app = new AppRule(false, pkgInfo.packageName, (long) pkgInfo.applicationInfo.uid, Constants.DB_ONION_TYPE_NONE, false, false);
+                    AppRule app = new AppRule(false, pkgInfo.packageName, (long) pkgInfo.applicationInfo.uid, Constants.DB_ONION_TYPE_NONE, false, false, null);
                     app.setAppName(packageManager.getApplicationLabel(pkgInfo.applicationInfo).toString());
                     pkgList.add(app);
                 }
@@ -129,7 +129,7 @@ public class AppFragment extends Fragment {
 
         for (PackageInfoData pkgInfo: specialApps.values()) {
             if (index.indexOfKey(pkgInfo.getUid()) < 0) {
-                AppRule app = new AppRule(false, pkgInfo.getPkgName(), pkgInfo.getUid(), Constants.DB_ONION_TYPE_NONE, false, false);
+                AppRule app = new AppRule(false, pkgInfo.getPkgName(), pkgInfo.getUid(), Constants.DB_ONION_TYPE_NONE, false, false, null);
                 app.setAppName(pkgInfo.getName());
                 pkgList.add(app);
             }

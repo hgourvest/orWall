@@ -17,6 +17,7 @@ public class natDBHelper extends SQLiteOpenHelper {
     public static final String COLUMN_ONIONTYPE = "onionType";
     public static final String COLUMN_LOCALHOST = "localhost";
     public static final String COLUMN_LOCALNETWORK = "localnetwork";
+    public static final String COLUMN_DPORTS = "dports";
 
 /*
     @Deprecated
@@ -58,7 +59,25 @@ public class natDBHelper extends SQLiteOpenHelper {
                     COLUMN_LOCALNETWORK
             );
 
-    private static final int DATABASE_VERSION = 2;
+    private static final String NAT_TABLE_CREATE_V3 =
+            String.format(
+                    "CREATE TABLE %s (" +
+                            "%s INTEGER PRIMARY KEY," +
+                            "%s TEXT NOT NULL," +
+                            "%s TEXT," +
+                            "%s INTEGER," +
+                            "%s INTEGER," +
+                            "%s TEXT)",
+                    NAT_TABLE_NAME,
+                    COLUMN_APPUID,
+                    COLUMN_APPNAME,
+                    COLUMN_ONIONTYPE,
+                    COLUMN_LOCALHOST,
+                    COLUMN_LOCALNETWORK,
+                    COLUMN_DPORTS
+            );
+
+    private static final int DATABASE_VERSION = 3;
     private static final String DB_NAME = "nat.s3db";
 
     public natDBHelper(Context context) {
@@ -67,7 +86,7 @@ public class natDBHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(NAT_TABLE_CREATE_V2);
+        db.execSQL(NAT_TABLE_CREATE_V3);
     }
 
     @Override
@@ -78,18 +97,17 @@ public class natDBHelper extends SQLiteOpenHelper {
 
         db.beginTransaction();
         try{
-            for(int version = oldVersion; version < newVersion; version++){
-                switch (version){
-                    // VERSION 1 -----> 2
-                    case 1:
-                        db.execSQL(String.format("ALTER TABLE %s RENAME TO %s_backup;", NAT_TABLE_NAME, NAT_TABLE_NAME));
-                        db.execSQL(NAT_TABLE_CREATE_V2);
-                        db.execSQL(String.format(
-                                "INSERT INTO %s(%s, %s, %s, %s, %s) SELECT %s, %s, %s, 0, 0 FROM %s_backup;",
-                                NAT_TABLE_NAME, COLUMN_APPUID, COLUMN_APPNAME, COLUMN_ONIONTYPE, COLUMN_LOCALHOST, COLUMN_LOCALNETWORK,
-                                                COLUMN_APPUID, COLUMN_APPNAME, COLUMN_ONIONTYPE, NAT_TABLE_NAME));
-                        db.execSQL(String.format("DROP TABLE %s_backup;", NAT_TABLE_NAME));
-                }
+            switch (oldVersion){
+                case 1:
+                    db.execSQL(String.format("ALTER TABLE %s RENAME TO %s_backup;", NAT_TABLE_NAME, NAT_TABLE_NAME));
+                    db.execSQL(NAT_TABLE_CREATE_V2);
+                    db.execSQL(String.format(
+                            "INSERT INTO %s(%s, %s, %s, %s, %s) SELECT %s, %s, %s, 0, 0 FROM %s_backup;",
+                            NAT_TABLE_NAME, COLUMN_APPUID, COLUMN_APPNAME, COLUMN_ONIONTYPE, COLUMN_LOCALHOST, COLUMN_LOCALNETWORK,
+                                            COLUMN_APPUID, COLUMN_APPNAME, COLUMN_ONIONTYPE, NAT_TABLE_NAME));
+                    db.execSQL(String.format("DROP TABLE %s_backup;", NAT_TABLE_NAME));
+                case 2:
+                    db.execSQL(String.format("ALTER TABLE %s ADD COLUMN %s TEXT;", NAT_TABLE_NAME, COLUMN_DPORTS));
             }
 
             db.setTransactionSuccessful();

@@ -15,6 +15,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.RadioButton;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import org.ethack.orwall.R;
@@ -61,6 +62,7 @@ public class AppListAdapter extends ArrayAdapter {
     private RadioButton radioTor;
     private CheckBox checkLocalHost;
     private CheckBox checkLocalNetwork;
+    private TextView textDPorts;
     //private RadioButton radioI2p;
     private RadioButton radioBypass;
     private Map<String, PackageInfoData> specialApps;
@@ -198,6 +200,8 @@ public class AppListAdapter extends ArrayAdapter {
                 appRule.setOnionType(Constants.DB_ONION_TYPE_BYPASS);
             appRule.setLocalHost(false);
             appRule.setLocalNetwork(false);
+            appRule.setDPorts(null);
+
             boolean success = this.natRules.addAppToRules(appRule);
             if (success) {
                 Toast.makeText(context, context.getString(R.string.toast_new_rule), Toast.LENGTH_SHORT).show();
@@ -216,6 +220,7 @@ public class AppListAdapter extends ArrayAdapter {
             String oldType = appRule.getOnionType();
             Boolean oldLocalhost = appRule.getLocalHost();
             Boolean oldLocalNetwork = appRule.getLocalNetwork();
+            String oldDPorts = appRule.getDPorts();
             boolean success = this.natRules.removeAppFromRules(appRule.getAppUID());
             if (success) {
                 if (Preferences.isOrwallEnabled(context))
@@ -224,12 +229,14 @@ public class AppListAdapter extends ArrayAdapter {
                 appRule.setOnionType(Constants.DB_ONION_TYPE_NONE);
                 appRule.setLocalHost(false);
                 appRule.setLocalNetwork(false);
+                appRule.setDPorts(null);
                 appRule.setLabel(appRule.getAppName());
                 Toast.makeText(context, context.getString(R.string.toast_remove_rule), Toast.LENGTH_SHORT).show();
             } else {
                 appRule.setOnionType(oldType);
                 appRule.setLocalHost(oldLocalhost);
                 appRule.setLocalNetwork(oldLocalNetwork);
+                appRule.setDPorts(oldDPorts);
                 Toast.makeText(context,
                         String.format(context.getString(R.string.toast_error), 2),
                         Toast.LENGTH_SHORT
@@ -265,6 +272,7 @@ public class AppListAdapter extends ArrayAdapter {
                                 radioBypass.setChecked(true);
                             }
                         }
+                        textDPorts.setEnabled(checkboxInternet.isChecked());
                     }
                 }
         );
@@ -284,26 +292,11 @@ public class AppListAdapter extends ArrayAdapter {
             }
             this.radioTor.setEnabled(this.checkboxInternet.isChecked());
         }
-/*
-        // is i2p present? No helper for that now
-        PackageInfo i2p = null;
-        try {
-            i2p = this.packageManager.getPackageInfo(Constants.I2P_APP_NAME, PackageManager.GET_PERMISSIONS);
-        } catch (PackageManager.NameNotFoundException e) {
 
-        }
-        this.radioI2p = new RadioButton(this.context);
-        if (i2p != null) {
-            radioI2p.setText("i2p");
-            // For now we do not have support for i2p. Just teasing ;)
-            radioI2p.setEnabled(false);
+        this.textDPorts = (TextView) l_view.findViewById(R.id.id_text_dports);
+        this.textDPorts.setText(appRule.getDPorts());
+        this.textDPorts.setEnabled(this.checkboxInternet.isChecked());
 
-            if (appRule.getOnionType() != null && appRule.getOnionType().equals(Constants.DB_ONION_TYPE_I2P)) {
-                radioI2p.setChecked(true);
-            }
-            ((ViewGroup) l_view.findViewById(R.id.radio_connection_providers)).addView(radioI2p);
-        }
-*/
         this.checkLocalHost = (CheckBox) l_view.findViewById(R.id.id_check_localhost);
         this.checkLocalHost.setChecked(appRule.getLocalHost());
 
@@ -366,13 +359,15 @@ public class AppListAdapter extends ArrayAdapter {
 */
         updated.setLocalHost(this.checkLocalHost.isChecked());
         updated.setLocalNetwork(this.checkLocalNetwork.isChecked());
+        CharSequence ports = this.textDPorts.getText();
+        updated.setDPorts((ports == null)?null:ports.toString());
 
         boolean done;
 
         // CREATE
         if (!appRule.isStored() && !updated.isEmpty()){
             done = natRules.addAppToRules(updated);
-            if (done){
+            if (done && Preferences.isOrwallEnabled(context)){
                 updated.install(this.context);
                 Toast.makeText(context, context.getString(R.string.toast_new_rule), Toast.LENGTH_SHORT).show();
             }
@@ -380,7 +375,7 @@ public class AppListAdapter extends ArrayAdapter {
         // UPDATE
         if (appRule.isStored() && !updated.isEmpty()){
             done = natRules.update(updated);
-            if (done){
+            if (done && Preferences.isOrwallEnabled(context)){
                 appRule.uninstall(this.context);
                 updated.install(this.context);
                 Toast.makeText(context, context.getString(R.string.toast_update_rule), Toast.LENGTH_SHORT).show();
@@ -389,7 +384,7 @@ public class AppListAdapter extends ArrayAdapter {
         //DELETE
         if (appRule.isStored() && updated.isEmpty()){
             done = natRules.removeAppFromRules(updated.getAppUID());
-            if (done) {
+            if (done && Preferences.isOrwallEnabled(context)) {
                 appRule.uninstall(this.context);
                 Toast.makeText(context, context.getString(R.string.toast_remove_rule), Toast.LENGTH_SHORT).show();
             }
@@ -402,6 +397,7 @@ public class AppListAdapter extends ArrayAdapter {
             appRule.setOnionType(updated.getOnionType());
             appRule.setLocalHost(updated.getLocalHost());
             appRule.setLocalNetwork(updated.getLocalNetwork());
+            appRule.setDPorts(updated.getDPorts());
 
             if (appRule.isEmpty()){
                 appRule.setStored(false);

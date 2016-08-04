@@ -36,7 +36,8 @@ public class BackgroundProcess extends IntentService {
                 String onionType = workIntent.getStringExtra(Constants.PARAM_ONIONTYPE);
                 Boolean localHost = workIntent.getBooleanExtra(Constants.PARAM_LOCALHOST, false);
                 Boolean localNetwork = workIntent.getBooleanExtra(Constants.PARAM_LOCALNETWORK, false);
-                addRule(appUID, appName, onionType, localHost, localNetwork);
+                String dPorts = workIntent.getStringExtra(Constants.PARAM_DPORTS);
+                addRule(appUID, appName, onionType, localHost, localNetwork, dPorts);
 
             } else if (action.equals(Constants.ACTION_RM_RULE)) {
                 long appUID = workIntent.getLongExtra(Constants.PARAM_APPUID, 0);
@@ -44,7 +45,8 @@ public class BackgroundProcess extends IntentService {
                 String onionType = workIntent.getStringExtra(Constants.PARAM_ONIONTYPE);
                 Boolean localHost = workIntent.getBooleanExtra(Constants.PARAM_LOCALHOST, false);
                 Boolean localNetwork = workIntent.getBooleanExtra(Constants.PARAM_LOCALNETWORK, false);
-                rmRule(appUID, appName, onionType, localHost, localNetwork);
+                String dPorts = workIntent.getStringExtra(Constants.PARAM_DPORTS);
+                rmRule(appUID, appName, onionType, localHost, localNetwork, dPorts);
 
             } else if (action.equals(Constants.ACTION_DISABLE_ORWALL)) {
                 iptables.deactivate();
@@ -64,13 +66,13 @@ public class BackgroundProcess extends IntentService {
         Util.enableCaptiveDetection(activate, this);
     }
 
-    private void addRule(Long appUID, String appName, String onionType, Boolean localHost, Boolean localNetwork) {
+    private void addRule(Long appUID, String appName, String onionType, Boolean localHost, Boolean localNetwork, String dPorts) {
 
         if (onionType.equals(Constants.DB_ONION_TYPE_TOR)) {
-            iptables.natApp(this, appUID, 'A', appName);
+            iptables.natApp(this, appUID, 'A', appName, dPorts);
         } else
         if (onionType.equals(Constants.DB_ONION_TYPE_BYPASS)) {
-            iptables.bypass(appUID, appName, true);
+            iptables.bypass(appUID, appName, true, dPorts);
         }
 
         if (localHost) {
@@ -82,12 +84,12 @@ public class BackgroundProcess extends IntentService {
         }
     }
 
-    private void rmRule(Long appUID, String appName, String onionType, Boolean localHost, Boolean localNetwork) {
+    private void rmRule(Long appUID, String appName, String onionType, Boolean localHost, Boolean localNetwork, String dPorts) {
         if (onionType.equals(Constants.DB_ONION_TYPE_TOR)) {
-            iptables.natApp(this, appUID, 'D', appName);
+            iptables.natApp(this, appUID, 'D', appName, dPorts);
         } else
         if (onionType.equals(Constants.DB_ONION_TYPE_BYPASS)) {
-            iptables.bypass(appUID, appName, false);
+            iptables.bypass(appUID, appName, false, dPorts);
         }
 
         if (localHost) {

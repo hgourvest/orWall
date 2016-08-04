@@ -18,6 +18,7 @@ public class Constants {
     public final static String PARAM_APPNAME = "org.ethack.orwall.backgroundProcess.action.rule.appName";
     public final static String PARAM_LOCALHOST = "org.ethack.orwall.backgroundProcess.action.rule.localHost";
     public final static String PARAM_LOCALNETWORK = "org.ethack.orwall.backgroundProcess.action.rule.localNetwork";
+    public final static String PARAM_DPORTS = "org.ethack.orwall.backgroundProcess.action.rule.dports";
     public final static String PARAM_ONIONTYPE = "org.ethack.orwall.backgroundProcess.action.rule.onionType";
 
     public final static String ACTION_DISABLE_ORWALL = "org.ethack.orwall.backgroundProcess.action.disable_orwall";
