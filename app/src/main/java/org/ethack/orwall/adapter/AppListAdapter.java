@@ -94,17 +94,17 @@ public class AppListAdapter extends ArrayAdapter {
     public View getView(final int position, View convertView, ViewGroup parent) {
         LayoutInflater inflater = (LayoutInflater) this.context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
-        ViewHolder holder;
+        CheckBox holder;
 
         if (convertView == null) {
             convertView = inflater.inflate(R.layout.app_row, parent, false);
-            holder = new ViewHolder();
-            holder.checkBox = (CheckBox) convertView.findViewById(R.id.id_application);
+
+            holder = (CheckBox) convertView.findViewById(R.id.id_application);
             convertView.setTag(holder);
         } else {
-            holder = (ViewHolder) convertView.getTag();
+            holder = (CheckBox) convertView.getTag();
         }
-        holder.checkBox.setTag(position);
+        holder.setTag(position);
 
         AppRule appRule = this.apps.get(position);
 
@@ -129,8 +129,8 @@ public class AppListAdapter extends ArrayAdapter {
         if (applicationInfo != null || packageInfoData != null) {
 
             appIcon.setBounds(0, 0, 40, 40);
-            holder.checkBox.setCompoundDrawables(appIcon, null, null, null);
-            holder.checkBox.setTag(R.id.id_appTag, appRule);
+            holder.setCompoundDrawables(appIcon, null, null, null);
+            holder.setTag(R.id.id_appTag, appRule);
 
             if (appRule.getLabel() == null) {
 
@@ -146,20 +146,20 @@ public class AppListAdapter extends ArrayAdapter {
                 }
                 if (appRule.isStored()) {
                     String label = appRule.getDisplay();
-                    holder.checkBox.setText(label);
+                    holder.setText(label);
                     appRule.setLabel(label);
-                    holder.checkBox.setChecked(true);
+                    holder.setChecked(true);
                 } else {
-                    holder.checkBox.setText(appRule.getAppName());
+                    holder.setText(appRule.getAppName());
                     appRule.setLabel(appRule.getAppName());
-                    holder.checkBox.setChecked(false);
+                    holder.setChecked(false);
                 }
             } else {
-                holder.checkBox.setText(appRule.getLabel());
-                holder.checkBox.setChecked(appRule.isStored());
+                holder.setText(appRule.getLabel());
+                holder.setChecked(appRule.isStored());
             }
 
-            holder.checkBox.setOnClickListener(new View.OnClickListener() {
+            holder.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     Log.d(TAG, "Click caught!");
@@ -172,7 +172,7 @@ public class AppListAdapter extends ArrayAdapter {
                     checkBox.setText(rule.getLabel());
                 }
             });
-            holder.checkBox.setOnLongClickListener(new View.OnLongClickListener() {
+            holder.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View view) {
                     showAdvanced(view);
@@ -417,12 +417,5 @@ public class AppListAdapter extends ArrayAdapter {
                     Toast.LENGTH_SHORT
             ).show();
         }
-    }
-
-    /**
-     * Simple holder — allows a faster view
-     */
-    static class ViewHolder {
-        protected CheckBox checkBox;
     }
 }
